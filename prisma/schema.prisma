@@ -1,0 +1,215 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// NOTE: Switch to "postgresql" for production
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// --------------------------------------
+// ENUMS (Removed for SQLite compatibility)
+// --------------------------------------
+
+// --------------------------------------
+// CORE IDENTITY
+// --------------------------------------
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  phone     String?  @unique
+  password  String   // Hashed
+  role      String   @default("ATHLETE") // ATHLETE, COACH, GYM, SPONSOR, ADMIN
+  
+  profile   Profile?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Profile {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Basic Info
+  username     String  @unique // @handle
+  displayName  String
+  bio          String?
+  location     String?
+  avatarUrl    String?
+  coverUrl     String?
+  
+  // Athlete Specific
+  sport        String?
+  discipline   String? // e.g., "100m Sprint" or "BJJ"
+  gender       String?
+  dateOfBirth  DateTime?
+  height       Float?
+  weight       Float?
+  weightClass  String?
+  
+  // Stats
+  reputationScore Int @default(0) // Calculated based on verifications
+  followerCount   Int @default(0)
+  followingCount  Int @default(0)
+
+  // Verification (The "Blue Tick" logic)
+  isVerified      Boolean @default(false)
+  verificationBadge String? // "PRO", "OLYMPIAN", "CERTIFIED_COACH"
+
+  // Relations
+  achievements Achievement[]
+  reels        Reel[]
+  
+  // Gym Relations
+  gymId        String?
+  gym          Profile?  @relation("GymRoster", fields: [gymId], references: [id]) // For athletes
+  members      Profile[] @relation("GymRoster") // For gyms
+  
+  // Content relations
+  likes        ReelLike[]
+  comments     ReelComment[]
+  
+  // Verification System
+  verificationsGiven Verification[] @relation("Verifier")
+  verificationRequests VerificationRequest[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// --------------------------------------
+// WORK & CREDIBILITY
+// --------------------------------------
+
+model Achievement {
+  id          String   @id @default(uuid())
+  type        String   // LIFT, TIME, SCORE, PLACEMENT, FIGHT_RECORD, CUSTOM
+  
+  title       String   // e.g. "Deadlift 200kg" or "Gold Medal Regionals"
+  description String?
+  date        DateTime // When it happened
+  location    String?
+  
+  // Quantitative Data (JSON for flexibility)
+  // e.g. { weight: 200, unit: "kg" } or { time: "10:30" }
+  metrics     String?  // Stored as JSON string
+  
+  // Proof
+  mediaUrl    String?
+  proofUrl    String?  // Link to official results
+  
+  profileId   String
+  profile     Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  
+  // Verification Logic
+  status      String   @default("UNVERIFIED") // UNVERIFIED, PENDING, VERIFIED, REJECTED
+  verifications Verification[]
+  
+  // Social
+  linkedReelId String?
+  linkedReel   Reel?   @relation(fields: [linkedReelId], references: [id])
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Verification {
+  id            String   @id @default(uuid())
+  
+  achievementId String
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+  
+  verifierId    String
+  verifier      Profile @relation("Verifier", fields: [verifierId], references: [id])
+  
+  status        String   // VERIFIED, REJECTED
+  note          String? // "Saw it in person"
+  
+  createdAt     DateTime @default(now())
+  
+  @@unique([achievementId, verifierId])
+}
+
+// --------------------------------------
+// CONTENT (REELS)
+// --------------------------------------
+
+model Reel {
+  id           String   @id @default(uuid())
+  caption      String?
+  videoUrl     String
+  thumbnailUrl String?
+  
+  profileId    String
+  profile      Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  
+  // Linking content to credibility
+  achievements Achievement[]
+  
+  likes        ReelLike[]
+  comments     ReelComment[]
+  
+  viewCount    Int @default(0)
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model ReelLike {
+  id        String   @id @default(uuid())
+  reelId    String
+  reel      Reel     @relation(fields: [reelId], references: [id], onDelete: Cascade)
+  profileId String
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+
+  @@unique([reelId, profileId])
+}
+
+model ReelComment {
+  id        String   @id @default(uuid())
+  content   String
+  
+  reelId    String
+  reel      Reel     @relation(fields: [reelId], references: [id], onDelete: Cascade)
+  profileId String
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+}
+
+// --------------------------------------
+// VERIFICATION REQUESTS
+// --------------------------------------
+
+model VerificationRequest {
+  id          String   @id @default(uuid())
+  
+  profileId   String
+  profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  
+  // Request details
+  credentials    String? // Description of qualifications/experience
+  proofDocuments String? // JSON array of document URLs
+  type           String  @default("ATHLETE") // ATHLETE, GYM, EVENT
+
+  // Status tracking
+  status      String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  
+  // Admin review
+  reviewedBy     String?
+  reviewedAt     DateTime?
+  reviewNote     String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
