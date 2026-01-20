@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useEffect } from 'react'
 import { createPost } from '@/lib/actions/post'
 import { useState } from 'react'
 
@@ -10,10 +10,12 @@ export default function TweetBox() {
     const [isExpanded, setIsExpanded] = useState(false)
 
     // Reset form on success
-    if (state?.success && content) {
-        setContent('')
-        setIsExpanded(false)
-    }
+    useEffect(() => {
+        if (state?.success) {
+            setContent('')
+            setIsExpanded(false)
+        }
+    }, [state?.success])
 
     return (
         <div style={{
