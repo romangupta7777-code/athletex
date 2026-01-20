@@ -17,14 +17,32 @@ export async function signup(prevState: unknown, formData: FormData) {
 
     const validation = signupSchema.safeParse(rawData)
     if (!validation.success) {
-        return { error: validation.error.issues[0].message }
+        return {
+            error: validation.error.issues[0].message,
+            fields: {
+                email: rawData.email,
+                name: rawData.displayName,
+                role: rawData.role
+            },
+            timestamp: Date.now()
+        }
     }
 
     const { email, password, role, displayName } = validation.data
 
     try {
         const existingUser = await prisma.user.findUnique({ where: { email } })
-        if (existingUser) return { error: 'User already exists' }
+        if (existingUser) {
+            return {
+                error: 'User already exists',
+                fields: {
+                    email: rawData.email,
+                    name: rawData.displayName,
+                    role: rawData.role
+                },
+                timestamp: Date.now()
+            }
+        }
 
         const hashedPassword = await hash(password, 10)
 
@@ -51,7 +69,15 @@ export async function signup(prevState: unknown, formData: FormData) {
 
     } catch (e) {
         console.error(e)
-        return { error: 'Failed to create user' }
+        return {
+            error: 'Failed to create user',
+            fields: {
+                email: rawData.email,
+                name: rawData.displayName,
+                role: rawData.role
+            },
+            timestamp: Date.now()
+        }
     }
 
     redirect('/dashboard')
@@ -65,17 +91,39 @@ export async function login(prevState: unknown, formData: FormData) {
 
     const validation = loginSchema.safeParse(rawData)
     if (!validation.success) {
-        return { error: validation.error.issues[0].message }
+        return {
+            error: validation.error.issues[0].message,
+            fields: {
+                email: rawData.email
+            },
+            timestamp: Date.now()
+        }
     }
 
     const { email, password } = validation.data
 
     try {
         const user = await prisma.user.findUnique({ where: { email } })
-        if (!user) return { error: 'Invalid credentials' }
+        if (!user) {
+            return {
+                error: 'Invalid credentials',
+                fields: {
+                    email: rawData.email
+                },
+                timestamp: Date.now()
+            }
+        }
 
         const valid = await compare(password, user.password)
-        if (!valid) return { error: 'Invalid credentials' }
+        if (!valid) {
+            return {
+                error: 'Invalid credentials',
+                fields: {
+                    email: rawData.email
+                },
+                timestamp: Date.now()
+            }
+        }
 
         const cookieStore = await cookies()
         cookieStore.set('userId', user.id, {
@@ -86,7 +134,13 @@ export async function login(prevState: unknown, formData: FormData) {
 
     } catch (e) {
         console.log(e)
-        return { error: 'Login failed' }
+        return {
+            error: 'Login failed',
+            fields: {
+                email: rawData.email
+            },
+            timestamp: Date.now()
+        }
     }
 
     redirect('/dashboard')

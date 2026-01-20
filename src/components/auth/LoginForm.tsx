@@ -13,15 +13,30 @@ export default function LoginForm() {
             <h1 className={styles.title}>Welcome Back</h1>
             <p className={styles.subtitle}>Log in to continue your streak</p>
 
-            <form action={action}>
+            <form action={action} key={state?.timestamp || 'initial'}>
                 <div className={styles.formGroup}>
                     <label className={styles.label}>Email</label>
-                    <input name="email" type="email" required className={styles.input} placeholder="you@example.com" />
+                    <input
+                        name="email"
+                        type="email"
+                        required
+                        className={styles.input}
+                        placeholder="you@example.com"
+                        defaultValue={state?.fields?.email || ''}
+                        disabled={isPending}
+                    />
                 </div>
 
                 <div className={styles.formGroup}>
                     <label className={styles.label}>Password</label>
-                    <input name="password" type="password" required className={styles.input} placeholder="••••••••" />
+                    <input
+                        name="password"
+                        type="password"
+                        required
+                        className={styles.input}
+                        placeholder="••••••••"
+                        disabled={isPending}
+                    />
                 </div>
 
                 <button type="submit" disabled={isPending} className={styles.button}>
