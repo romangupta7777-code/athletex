@@ -77,6 +77,20 @@ model Profile {
   likes        ReelLike[]
   comments     ReelComment[]
   
+  // Social Posts
+  posts        Post[]
+  postLikes    PostLike[]
+  postComments PostComment[]
+  
+  // Friends
+  friendRequestsSent     Friendship[] @relation("FriendshipRequester")
+  friendRequestsReceived Friendship[] @relation("FriendshipAddressee")
+  
+  // Groups
+  createdGroups  Group[]       @relation("GroupCreator")
+  groupMemberships GroupMember[]
+  groupPosts     GroupPost[]   @relation("GroupPostAuthor")
+  
   // Verification System
   verificationsGiven Verification[] @relation("Verifier")
   verificationRequests VerificationRequest[]
@@ -214,3 +228,105 @@ model VerificationRequest {
   updatedAt   DateTime @updatedAt
 }
 
+// --------------------------------------
+// SOCIAL POSTS (TWEETS)
+// --------------------------------------
+
+model Post {
+  id        String   @id @default(uuid())
+  content   String
+  mediaUrl  String?
+  
+  profileId String
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  
+  likes     PostLike[]
+  comments  PostComment[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PostLike {
+  id        String   @id @default(uuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  profileId String
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  
+  @@unique([postId, profileId])
+}
+
+model PostComment {
+  id        String   @id @default(uuid())
+  content   String
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  profileId String
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+// --------------------------------------
+// FRIENDS SYSTEM
+// --------------------------------------
+
+model Friendship {
+  id          String   @id @default(uuid())
+  requesterId String
+  requester   Profile  @relation("FriendshipRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  addresseeId String
+  addressee   Profile  @relation("FriendshipAddressee", fields: [addresseeId], references: [id], onDelete: Cascade)
+  status      String   @default("PENDING") // PENDING, ACCEPTED, REJECTED
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([requesterId, addresseeId])
+}
+
+// --------------------------------------
+// GROUPS SYSTEM
+// --------------------------------------
+
+model Group {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  avatarUrl   String?
+  coverUrl    String?
+  isPrivate   Boolean  @default(false)
+  
+  creatorId   String
+  creator     Profile  @relation("GroupCreator", fields: [creatorId], references: [id])
+  
+  members     GroupMember[]
+  posts       GroupPost[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model GroupMember {
+  id        String   @id @default(uuid())
+  groupId   String
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  profileId String
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  role      String   @default("MEMBER") // ADMIN, MODERATOR, MEMBER
+  joinedAt  DateTime @default(now())
+  
+  @@unique([groupId, profileId])
+}
+
+model GroupPost {
+  id        String   @id @default(uuid())
+  content   String
+  mediaUrl  String?
+  groupId   String
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    Profile  @relation("GroupPostAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
