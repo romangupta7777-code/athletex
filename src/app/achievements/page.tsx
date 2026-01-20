@@ -1,7 +1,5 @@
-```javascript
 import { getCurrentUser } from '@/lib/auth'
 import { redirect } from 'next/navigation'
-import AchievementForm from '@/components/achievements/AchievementForm'
 import AchievementManager from '@/components/achievements/AchievementManager'
 import { prisma } from '@/lib/prisma'
 
@@ -15,7 +13,7 @@ export default async function AchievementsPage() {
     if (!user) {
         redirect('/auth/login')
     }
-    
+
     // Fetch user's achievements
     const achievements = user.profile ? await prisma.achievement.findMany({
         where: {
@@ -25,7 +23,7 @@ export default async function AchievementsPage() {
             date: 'desc'
         }
     }) : []
-    
+
     return (
         <div style={{
             minHeight: '100vh',
@@ -50,29 +48,9 @@ export default async function AchievementsPage() {
                 <p style={{ color: '#71717a', marginBottom: '2rem' }}>
                     Log your personal records, competition results, and training milestones
                 </p>
-                
-                <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: '1fr 2fr',
-                    gap: '2rem',
-                    alignItems: 'start'
-                }}>
-                    <div>
-                        <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem', color: 'white' }}>
-                            Log New Achievement
-                        </h2>
-                        <AchievementForm />
-                    </div>
-                    
-                    <div>
-                        <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem', color: 'white' }}>
-                            Your Achievements
-                        </h2>
-                        <AchievementManager achievements={achievements} />
-                    </div>
-                </div>
+
+                <AchievementManager achievements={achievements} />
             </div>
         </div>
     )
 }
-```
